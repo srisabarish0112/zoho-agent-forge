@@ -3,91 +3,173 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Plus, Zap, Users, DollarSign, Mail, Phone, Calendar, FileText } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Plus, Zap, Users, DollarSign, Mail, Phone, Calendar, ArrowRight } from 'lucide-react';
+
+interface SignalFlow {
+  id: string;
+  selectedModule?: string;
+  selectedSignals: string[];
+  nextAction?: string;
+}
 
 export const AgentSignals = () => {
-  const [customSignal, setCustomSignal] = useState('');
-  const [selectedSignals, setSelectedSignals] = useState<string[]>([]);
+  const [signalFlows, setSignalFlows] = useState<SignalFlow[]>([{ id: '1', selectedSignals: [] }]);
 
   const modules = [
     {
       name: 'Leads',
+      value: 'leads',
       icon: Users,
       color: 'bg-blue-100 text-blue-600',
       signals: [
-        { id: 'lead_created', name: 'Lead Created', description: 'Trigger when a new lead is added' },
-        { id: 'lead_edited', name: 'Lead Edited', description: 'Trigger when lead information is updated' },
-        { id: 'lead_qualified', name: 'Lead Qualified', description: 'Trigger when lead status changes to qualified' },
-        { id: 'lead_converted', name: 'Lead Converted', description: 'Trigger when lead is converted to deal' }
+        { id: 'lead_created', name: 'Lead Created' },
+        { id: 'lead_edited', name: 'Lead Edited' },
+        { id: 'lead_qualified', name: 'Lead Qualified' },
+        { id: 'lead_converted', name: 'Lead Converted' }
+      ],
+      nextActions: [
+        { id: 'email', name: 'Email' },
+        { id: 'call', name: 'Call' },
+        { id: 'notes', name: 'Notes' },
+        { id: 'task', name: 'Task' },
+        { id: 'meeting', name: 'Meeting' }
       ]
     },
     {
       name: 'Contacts',
+      value: 'contacts',
       icon: Users,
       color: 'bg-green-100 text-green-600',
       signals: [
-        { id: 'contact_created', name: 'Contact Created', description: 'Trigger when a new contact is added' },
-        { id: 'contact_updated', name: 'Contact Updated', description: 'Trigger when contact details are modified' },
-        { id: 'contact_engagement', name: 'Contact Engagement', description: 'Trigger on contact interaction' }
+        { id: 'contact_created', name: 'Contact Created' },
+        { id: 'contact_updated', name: 'Contact Updated' },
+        { id: 'contact_engagement', name: 'Contact Engagement' }
+      ],
+      nextActions: [
+        { id: 'email', name: 'Email' },
+        { id: 'call', name: 'Call' },
+        { id: 'sms', name: 'SMS' },
+        { id: 'notes', name: 'Notes' }
       ]
     },
     {
       name: 'Deals',
+      value: 'deals',
       icon: DollarSign,
       color: 'bg-purple-100 text-purple-600',
       signals: [
-        { id: 'deal_created', name: 'Deal Created', description: 'Trigger when a new deal is created' },
-        { id: 'deal_stage_change', name: 'Deal Stage Change', description: 'Trigger when deal moves to next stage' },
-        { id: 'deal_won', name: 'Deal Won', description: 'Trigger when deal is closed won' },
-        { id: 'deal_lost', name: 'Deal Lost', description: 'Trigger when deal is closed lost' }
+        { id: 'deal_created', name: 'Deal Created' },
+        { id: 'deal_stage_change', name: 'Deal Stage Change' },
+        { id: 'deal_won', name: 'Deal Won' },
+        { id: 'deal_lost', name: 'Deal Lost' }
+      ],
+      nextActions: [
+        { id: 'email', name: 'Email' },
+        { id: 'proposal', name: 'Proposal' },
+        { id: 'quote', name: 'Quote' },
+        { id: 'contract', name: 'Contract' }
       ]
     },
     {
       name: 'Activities',
+      value: 'activities',
       icon: Calendar,
       color: 'bg-orange-100 text-orange-600',
       signals: [
-        { id: 'task_created', name: 'Task Created', description: 'Trigger when a new task is created' },
-        { id: 'event_scheduled', name: 'Event Scheduled', description: 'Trigger when an event is scheduled' },
-        { id: 'call_logged', name: 'Call Logged', description: 'Trigger when a call activity is logged' }
+        { id: 'task_created', name: 'Task Created' },
+        { id: 'event_scheduled', name: 'Event Scheduled' },
+        { id: 'call_logged', name: 'Call Logged' }
+      ],
+      nextActions: [
+        { id: 'follow_up', name: 'Follow Up' },
+        { id: 'reminder', name: 'Reminder' },
+        { id: 'notification', name: 'Notification' }
       ]
     },
     {
       name: 'Emails',
+      value: 'emails',
       icon: Mail,
       color: 'bg-red-100 text-red-600',
       signals: [
-        { id: 'email_sent', name: 'Email Sent', description: 'Trigger when an email is sent' },
-        { id: 'email_opened', name: 'Email Opened', description: 'Trigger when email is opened by recipient' },
-        { id: 'email_clicked', name: 'Email Clicked', description: 'Trigger when email link is clicked' }
+        { id: 'email_sent', name: 'Email Sent' },
+        { id: 'email_opened', name: 'Email Opened' },
+        { id: 'email_clicked', name: 'Email Clicked' }
+      ],
+      nextActions: [
+        { id: 'follow_up_email', name: 'Follow Up Email' },
+        { id: 'call', name: 'Call' },
+        { id: 'task', name: 'Task' }
       ]
     },
     {
       name: 'Calls',
+      value: 'calls',
       icon: Phone,
       color: 'bg-teal-100 text-teal-600',
       signals: [
-        { id: 'call_incoming', name: 'Incoming Call', description: 'Trigger on incoming call' },
-        { id: 'call_missed', name: 'Missed Call', description: 'Trigger when a call is missed' },
-        { id: 'call_completed', name: 'Call Completed', description: 'Trigger when call is completed' }
+        { id: 'call_incoming', name: 'Incoming Call' },
+        { id: 'call_missed', name: 'Missed Call' },
+        { id: 'call_completed', name: 'Call Completed' }
+      ],
+      nextActions: [
+        { id: 'email', name: 'Email' },
+        { id: 'notes', name: 'Notes' },
+        { id: 'task', name: 'Task' },
+        { id: 'callback', name: 'Callback' }
       ]
     }
   ];
 
-  const handleSignalToggle = (signalId: string) => {
-    setSelectedSignals(prev => 
-      prev.includes(signalId) 
-        ? prev.filter(id => id !== signalId)
-        : [...prev, signalId]
-    );
+  const updateSignalFlow = (flowId: string, updates: Partial<SignalFlow>) => {
+    setSignalFlows(prev => prev.map(flow => 
+      flow.id === flowId ? { ...flow, ...updates } : flow
+    ));
   };
 
-  const addCustomSignal = () => {
-    if (customSignal.trim()) {
-      setSelectedSignals(prev => [...prev, `custom_${Date.now()}`]);
-      setCustomSignal('');
+  const handleModuleSelect = (flowId: string, moduleValue: string) => {
+    updateSignalFlow(flowId, { selectedModule: moduleValue, selectedSignals: [], nextAction: undefined });
+  };
+
+  const handleSignalToggle = (flowId: string, signalId: string) => {
+    const flow = signalFlows.find(f => f.id === flowId);
+    if (!flow) return;
+    
+    const newSignals = flow.selectedSignals.includes(signalId)
+      ? flow.selectedSignals.filter(id => id !== signalId)
+      : [...flow.selectedSignals, signalId];
+    
+    updateSignalFlow(flowId, { selectedSignals: newSignals });
+  };
+
+  const handleNextActionSelect = (flowId: string, actionId: string) => {
+    updateSignalFlow(flowId, { nextAction: actionId });
+  };
+
+  const addAnotherModuleFlow = () => {
+    const newFlow: SignalFlow = {
+      id: Date.now().toString(),
+      selectedSignals: []
+    };
+    setSignalFlows(prev => [...prev, newFlow]);
+  };
+
+  const addNewFlow = () => {
+    const newFlow: SignalFlow = {
+      id: Date.now().toString(),
+      selectedSignals: []
+    };
+    setSignalFlows(prev => [...prev, newFlow]);
+  };
+
+  const getSelectedModule = (moduleValue?: string) => {
+    return modules.find(m => m.value === moduleValue);
+  };
+
+  const removeFlow = (flowId: string) => {
+    if (signalFlows.length > 1) {
+      setSignalFlows(prev => prev.filter(flow => flow.id !== flowId));
     }
   };
 
@@ -96,106 +178,167 @@ export const AgentSignals = () => {
       <div className="flex items-center gap-2 mb-4">
         <Zap className="h-5 w-5 text-primary" />
         <span className="text-sm text-muted-foreground">
-          Select the CRM modules and signals that should trigger your agent
+          Create signal flows by selecting modules and their triggers
         </span>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {modules.map((module) => {
-          const Icon = module.icon;
-          return (
-            <Card key={module.name} className="border-2 border-border/50 hover:border-primary/30 transition-all">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <div className={`p-2 rounded-lg ${module.color}`}>
-                    <Icon className="h-4 w-4" />
-                  </div>
-                  {module.name}
-                  <Badge variant="secondary" className="ml-auto text-xs">
-                    {module.signals.length}
-                  </Badge>
+      {/* Signal Flows */}
+      {signalFlows.map((flow, index) => {
+        const selectedModule = getSelectedModule(flow.selectedModule);
+        
+        return (
+          <Card key={flow.id} className="border-2 border-border/50 hover:border-primary/30 transition-all">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg">
+                  Signal Flow {index + 1}
                 </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {module.signals.map((signal) => (
-                  <div key={signal.id} className="flex items-start space-x-2">
-                    <Checkbox
-                      id={signal.id}
-                      checked={selectedSignals.includes(signal.id)}
-                      onCheckedChange={() => handleSignalToggle(signal.id)}
-                      className="mt-0.5"
-                    />
-                    <div className="grid gap-1.5 leading-none">
-                      <Label
-                        htmlFor={signal.id}
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                      >
-                        {signal.name}
-                      </Label>
-                      <p className="text-xs text-muted-foreground">
-                        {signal.description}
-                      </p>
-                    </div>
+                {signalFlows.length > 1 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeFlow(flow.id)}
+                    className="text-red-500 hover:text-red-700"
+                  >
+                    Remove
+                  </Button>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap items-center gap-4">
+                {/* Step 1: Select Module */}
+                <div className="flex-shrink-0">
+                  <label className="text-sm font-medium mb-2 block">Select Module</label>
+                  <Select value={flow.selectedModule || ""} onValueChange={(value) => handleModuleSelect(flow.id, value)}>
+                    <SelectTrigger className="w-40">
+                      <SelectValue placeholder="Choose module" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {modules.map((module) => {
+                        const Icon = module.icon;
+                        return (
+                          <SelectItem key={module.value} value={module.value}>
+                            <div className="flex items-center gap-2">
+                              <div className={`p-1 rounded ${module.color}`}>
+                                <Icon className="h-3 w-3" />
+                              </div>
+                              {module.name}
+                            </div>
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Arrow */}
+                {flow.selectedModule && <ArrowRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />}
+
+                {/* Step 2: Select Signals */}
+                {flow.selectedModule && selectedModule && (
+                  <div className="flex-shrink-0">
+                    <label className="text-sm font-medium mb-2 block">Select Triggers</label>
+                    <Card className="w-64 max-h-48 overflow-y-auto">
+                      <CardContent className="p-3 space-y-2">
+                        {selectedModule.signals.map((signal) => (
+                          <div key={signal.id} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`${flow.id}-${signal.id}`}
+                              checked={flow.selectedSignals.includes(signal.id)}
+                              onCheckedChange={() => handleSignalToggle(flow.id, signal.id)}
+                            />
+                            <label
+                              htmlFor={`${flow.id}-${signal.id}`}
+                              className="text-sm leading-none cursor-pointer"
+                            >
+                              {signal.name}
+                            </label>
+                          </div>
+                        ))}
+                      </CardContent>
+                    </Card>
                   </div>
-                ))}
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
+                )}
 
-      {/* Custom Signals */}
-      <Card className="border-dashed border-2 border-primary/30 bg-primary/5">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Plus className="h-5 w-5 text-primary" />
-            Custom Signals
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-2">
-            <Input
-              placeholder="Enter custom signal name..."
-              value={customSignal}
-              onChange={(e) => setCustomSignal(e.target.value)}
-              className="flex-1"
-            />
-            <Button onClick={addCustomSignal} size="sm">
-              <Plus className="h-4 w-4 mr-1" />
-              Add
-            </Button>
-          </div>
-          <p className="text-xs text-muted-foreground mt-2">
-            Create custom triggers based on your specific business needs
-          </p>
-        </CardContent>
-      </Card>
+                {/* Arrow */}
+                {flow.selectedSignals.length > 0 && <ArrowRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />}
 
-      {/* Selected Signals Summary */}
-      {selectedSignals.length > 0 && (
-        <Card className="bg-muted/50">
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              Selected Signals
-              <Badge variant="secondary">{selectedSignals.length}</Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-2">
-              {selectedSignals.slice(0, 10).map((signalId) => (
-                <Badge key={signalId} variant="secondary" className="bg-primary/10 text-primary">
-                  {signalId.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                </Badge>
-              ))}
-              {selectedSignals.length > 10 && (
-                <Badge variant="secondary">
-                  +{selectedSignals.length - 10} more
-                </Badge>
+                {/* Step 3: Select Next Action */}
+                {flow.selectedSignals.length > 0 && selectedModule && (
+                  <div className="flex-shrink-0">
+                    <label className="text-sm font-medium mb-2 block">Select Next Action</label>
+                    <Select value={flow.nextAction || ""} onValueChange={(value) => handleNextActionSelect(flow.id, value)}>
+                      <SelectTrigger className="w-48">
+                        <SelectValue placeholder="Choose action" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {selectedModule.nextActions.map((action) => (
+                          <SelectItem key={action.id} value={action.id}>
+                            {action.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {/* Arrow */}
+                {flow.nextAction && <ArrowRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />}
+
+                {/* Step 4: Add Button */}
+                {flow.nextAction && (
+                  <div className="flex-shrink-0">
+                    <Button variant="outline" size="icon" className="w-10 h-10">
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              {/* Flow Summary */}
+              {flow.selectedModule && flow.selectedSignals.length > 0 && (
+                <div className="mt-4 p-3 bg-muted/50 rounded-lg">
+                  <p className="text-sm text-muted-foreground">
+                    <strong>Flow Summary:</strong> When {selectedModule?.name} triggers{' '}
+                    <Badge variant="secondary" className="mx-1">
+                      {flow.selectedSignals.length} signal{flow.selectedSignals.length > 1 ? 's' : ''}
+                    </Badge>
+                    {flow.nextAction && (
+                      <>
+                        {' '}→ Execute{' '}
+                        <Badge variant="default" className="mx-1">
+                          {selectedModule?.nextActions.find(a => a.id === flow.nextAction)?.name}
+                        </Badge>
+                      </>
+                    )}
+                  </p>
+                </div>
               )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+            </CardContent>
+          </Card>
+        );
+      })}
+
+      {/* Add Flow Buttons */}
+      <div className="flex gap-4">
+        <Button 
+          variant="outline" 
+          onClick={addAnotherModuleFlow}
+          className="flex items-center gap-2"
+        >
+          <Plus className="h-4 w-4" />
+          Add Another Module with Same Flow
+        </Button>
+        <Button 
+          variant="default" 
+          onClick={addNewFlow}
+          className="flex items-center gap-2"
+        >
+          <Plus className="h-4 w-4" />
+          Create New Flow
+        </Button>
+      </div>
     </div>
   );
 };
