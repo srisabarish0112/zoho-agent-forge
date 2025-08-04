@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Plus, Zap, Users, DollarSign, Mail, Phone, Calendar, FileText } from 'lucide-react';
+import { Plus, Zap, Users, DollarSign, Mail, Phone, Calendar, FileText, Settings, MapPin } from 'lucide-react';
 
 export const AgentSignals = () => {
   const [customSignal, setCustomSignal] = useState('');
@@ -17,10 +17,11 @@ export const AgentSignals = () => {
       icon: Users,
       color: 'bg-blue-100 text-blue-600',
       signals: [
-        { id: 'lead_created', name: 'Lead Created', description: 'Trigger when a new lead is added' },
-        { id: 'lead_edited', name: 'Lead Edited', description: 'Trigger when lead information is updated' },
-        { id: 'lead_qualified', name: 'Lead Qualified', description: 'Trigger when lead status changes to qualified' },
-        { id: 'lead_converted', name: 'Lead Converted', description: 'Trigger when lead is converted to deal' }
+        { id: 'record_created', name: 'Record Created', description: 'Trigger when a new record is added' },
+        { id: 'record_updated', name: 'Record Updated', description: 'Trigger when record information is updated' },
+        { id: 'status_changed', name: 'Status Changed', description: 'Trigger when record status changes' },
+        { id: 'email_received', name: 'Email Received', description: 'Trigger when email is received' },
+        { id: 'email_sent', name: 'Email Sent', description: 'Trigger when email is sent' }
       ]
     },
     {
@@ -28,9 +29,23 @@ export const AgentSignals = () => {
       icon: Users,
       color: 'bg-green-100 text-green-600',
       signals: [
-        { id: 'contact_created', name: 'Contact Created', description: 'Trigger when a new contact is added' },
-        { id: 'contact_updated', name: 'Contact Updated', description: 'Trigger when contact details are modified' },
-        { id: 'contact_engagement', name: 'Contact Engagement', description: 'Trigger on contact interaction' }
+        { id: 'record_created', name: 'Record Created', description: 'Trigger when a new record is added' },
+        { id: 'record_updated', name: 'Record Updated', description: 'Trigger when record details are modified' },
+        { id: 'email_received', name: 'Email Received', description: 'Trigger when email is received' },
+        { id: 'email_sent', name: 'Email Sent', description: 'Trigger when email is sent' },
+        { id: 'engagement_activity', name: 'Engagement Activity', description: 'Trigger on contact interaction' }
+      ]
+    },
+    {
+      name: 'Accounts',
+      icon: Users,
+      color: 'bg-indigo-100 text-indigo-600',
+      signals: [
+        { id: 'record_created', name: 'Record Created', description: 'Trigger when a new record is added' },
+        { id: 'record_updated', name: 'Record Updated', description: 'Trigger when record is updated' },
+        { id: 'email_received', name: 'Email Received', description: 'Trigger when email is received' },
+        { id: 'email_sent', name: 'Email Sent', description: 'Trigger when email is sent' },
+        { id: 'revenue_milestone', name: 'Revenue Milestone', description: 'Trigger when revenue targets are met' }
       ]
     },
     {
@@ -38,10 +53,11 @@ export const AgentSignals = () => {
       icon: DollarSign,
       color: 'bg-purple-100 text-purple-600',
       signals: [
-        { id: 'deal_created', name: 'Deal Created', description: 'Trigger when a new deal is created' },
-        { id: 'deal_stage_change', name: 'Deal Stage Change', description: 'Trigger when deal moves to next stage' },
+        { id: 'record_created', name: 'Record Created', description: 'Trigger when a new deal is created' },
+        { id: 'stage_changed', name: 'Stage Changed', description: 'Trigger when deal moves to next stage' },
         { id: 'deal_won', name: 'Deal Won', description: 'Trigger when deal is closed won' },
-        { id: 'deal_lost', name: 'Deal Lost', description: 'Trigger when deal is closed lost' }
+        { id: 'deal_lost', name: 'Deal Lost', description: 'Trigger when deal is closed lost' },
+        { id: 'email_sent', name: 'Email Sent', description: 'Trigger when email is sent' }
       ]
     },
     {
@@ -51,7 +67,8 @@ export const AgentSignals = () => {
       signals: [
         { id: 'task_created', name: 'Task Created', description: 'Trigger when a new task is created' },
         { id: 'event_scheduled', name: 'Event Scheduled', description: 'Trigger when an event is scheduled' },
-        { id: 'call_logged', name: 'Call Logged', description: 'Trigger when a call activity is logged' }
+        { id: 'call_logged', name: 'Call Logged', description: 'Trigger when a call activity is logged' },
+        { id: 'email_sent', name: 'Email Sent', description: 'Trigger when email is sent' }
       ]
     },
     {
@@ -60,6 +77,7 @@ export const AgentSignals = () => {
       color: 'bg-red-100 text-red-600',
       signals: [
         { id: 'email_sent', name: 'Email Sent', description: 'Trigger when an email is sent' },
+        { id: 'email_received', name: 'Email Received', description: 'Trigger when email is received' },
         { id: 'email_opened', name: 'Email Opened', description: 'Trigger when email is opened by recipient' },
         { id: 'email_clicked', name: 'Email Clicked', description: 'Trigger when email link is clicked' }
       ]
@@ -75,6 +93,36 @@ export const AgentSignals = () => {
       ]
     }
   ];
+
+  // Unify signals across modules
+  const unifiedSignals = () => {
+    const signalMap = new Map();
+    
+    modules.forEach(module => {
+      module.signals.forEach(signal => {
+        if (signalMap.has(signal.id)) {
+          signalMap.get(signal.id).modules.push({
+            name: module.name,
+            icon: module.icon,
+            color: module.color
+          });
+        } else {
+          signalMap.set(signal.id, {
+            id: signal.id,
+            name: signal.name,
+            description: signal.description,
+            modules: [{
+              name: module.name,
+              icon: module.icon,
+              color: module.color
+            }]
+          });
+        }
+      });
+    });
+    
+    return Array.from(signalMap.values());
+  };
 
   const handleSignalToggle = (signalId: string) => {
     setSelectedSignals(prev => 
@@ -96,52 +144,70 @@ export const AgentSignals = () => {
       <div className="flex items-center gap-2 mb-4">
         <Zap className="h-5 w-5 text-primary" />
         <span className="text-sm text-muted-foreground">
-          Select the CRM modules and signals that should trigger your agent
+          Select unified signals that should trigger your agent across all modules
         </span>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {modules.map((module) => {
-          const Icon = module.icon;
-          return (
-            <Card key={module.name} className="border-2 border-border/50 hover:border-primary/30 transition-all">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <div className={`p-2 rounded-lg ${module.color}`}>
-                    <Icon className="h-4 w-4" />
-                  </div>
-                  {module.name}
-                  <Badge variant="secondary" className="ml-auto text-xs">
-                    {module.signals.length}
-                  </Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {module.signals.map((signal) => (
-                  <div key={signal.id} className="flex items-start space-x-2">
-                    <Checkbox
-                      id={signal.id}
-                      checked={selectedSignals.includes(signal.id)}
-                      onCheckedChange={() => handleSignalToggle(signal.id)}
-                      className="mt-0.5"
-                    />
-                    <div className="grid gap-1.5 leading-none">
+      {/* Unified Signals */}
+      <div className="space-y-4">
+        {unifiedSignals().map((signal) => (
+          <Card key={signal.id} className="border-2 border-border/50 hover:border-primary/30 transition-all">
+            <CardContent className="p-4">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-start space-x-3 flex-1">
+                  <Checkbox
+                    id={signal.id}
+                    checked={selectedSignals.includes(signal.id)}
+                    onCheckedChange={() => handleSignalToggle(signal.id)}
+                    className="mt-1"
+                  />
+                  <div className="flex-1 space-y-2">
+                    <div className="flex items-center gap-2">
                       <Label
                         htmlFor={signal.id}
                         className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                       >
                         {signal.name}
                       </Label>
-                      <p className="text-xs text-muted-foreground">
-                        {signal.description}
-                      </p>
+                      <Badge variant="secondary" className="text-xs">
+                        {signal.modules.length} module{signal.modules.length > 1 ? 's' : ''}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {signal.description}
+                    </p>
+                    {/* Show applicable modules */}
+                    <div className="flex flex-wrap gap-1">
+                      {signal.modules.map((module, index) => {
+                        const Icon = module.icon;
+                        return (
+                          <div key={index} className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs ${module.color}`}>
+                            <Icon className="h-3 w-3" />
+                            {module.name}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
-                ))}
-              </CardContent>
-            </Card>
-          );
-        })}
+                </div>
+                
+                {/* Condition and Param Mapping buttons */}
+                {selectedSignals.includes(signal.id) && (
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" className="h-8 px-3">
+                      <Settings className="h-3 w-3 mr-1" />
+                      Condition
+                    </Button>
+                    <Button variant="outline" size="sm" className="h-8 px-3">
+                      <MapPin className="h-3 w-3 mr-1" />
+                      Param Mapping
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
       {/* Custom Signals */}
