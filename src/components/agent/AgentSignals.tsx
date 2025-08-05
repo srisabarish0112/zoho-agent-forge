@@ -6,15 +6,27 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Zap, Users, DollarSign, Mail, Phone, Calendar, ArrowRight } from 'lucide-react';
 
-interface SignalFlow {
+interface SignalStep {
   id: string;
   selectedModule?: string;
   selectedSignals: string[];
+  selectedNextSignal?: string;
+  selectedNextSignals: string[];
   nextAction?: string;
 }
 
+interface SignalFlow {
+  id: string;
+  parentStep: SignalStep;
+  childSteps: SignalStep[];
+}
+
 export const AgentSignals = () => {
-  const [signalFlows, setSignalFlows] = useState<SignalFlow[]>([{ id: '1', selectedSignals: [] }]);
+  const [signalFlows, setSignalFlows] = useState<SignalFlow[]>([{ 
+    id: '1', 
+    parentStep: { id: 'parent-1', selectedSignals: [], selectedNextSignals: [] },
+    childSteps: []
+  }]);
 
   const modules = [
     {
@@ -26,7 +38,9 @@ export const AgentSignals = () => {
         { id: 'lead_created', name: 'Lead Created' },
         { id: 'lead_edited', name: 'Lead Edited' },
         { id: 'lead_qualified', name: 'Lead Qualified' },
-        { id: 'lead_converted', name: 'Lead Converted' }
+        { id: 'lead_converted', name: 'Lead Converted' },
+        { id: 'lead_status_changed', name: 'Lead Status Changed' },
+        { id: 'lead_assigned', name: 'Lead Assigned' }
       ],
       nextActions: [
         { id: 'email', name: 'Email' },
@@ -44,7 +58,10 @@ export const AgentSignals = () => {
       signals: [
         { id: 'contact_created', name: 'Contact Created' },
         { id: 'contact_updated', name: 'Contact Updated' },
-        { id: 'contact_engagement', name: 'Contact Engagement' }
+        { id: 'contact_engagement', name: 'Contact Engagement' },
+        { id: 'contact_email_opened', name: 'Contact Email Opened' },
+        { id: 'contact_called', name: 'Contact Called' },
+        { id: 'contact_meeting_scheduled', name: 'Contact Meeting Scheduled' }
       ],
       nextActions: [
         { id: 'email', name: 'Email' },
@@ -62,7 +79,9 @@ export const AgentSignals = () => {
         { id: 'deal_created', name: 'Deal Created' },
         { id: 'deal_stage_change', name: 'Deal Stage Change' },
         { id: 'deal_won', name: 'Deal Won' },
-        { id: 'deal_lost', name: 'Deal Lost' }
+        { id: 'deal_lost', name: 'Deal Lost' },
+        { id: 'deal_amount_updated', name: 'Deal Amount Updated' },
+        { id: 'deal_probability_changed', name: 'Deal Probability Changed' }
       ],
       nextActions: [
         { id: 'email', name: 'Email' },
@@ -79,7 +98,10 @@ export const AgentSignals = () => {
       signals: [
         { id: 'task_created', name: 'Task Created' },
         { id: 'event_scheduled', name: 'Event Scheduled' },
-        { id: 'call_logged', name: 'Call Logged' }
+        { id: 'call_logged', name: 'Call Logged' },
+        { id: 'meeting_completed', name: 'Meeting Completed' },
+        { id: 'task_completed', name: 'Task Completed' },
+        { id: 'activity_overdue', name: 'Activity Overdue' }
       ],
       nextActions: [
         { id: 'follow_up', name: 'Follow Up' },
@@ -95,7 +117,10 @@ export const AgentSignals = () => {
       signals: [
         { id: 'email_sent', name: 'Email Sent' },
         { id: 'email_opened', name: 'Email Opened' },
-        { id: 'email_clicked', name: 'Email Clicked' }
+        { id: 'email_clicked', name: 'Email Clicked' },
+        { id: 'email_replied', name: 'Email Replied' },
+        { id: 'email_bounced', name: 'Email Bounced' },
+        { id: 'email_unsubscribed', name: 'Email Unsubscribed' }
       ],
       nextActions: [
         { id: 'follow_up_email', name: 'Follow Up Email' },
@@ -111,7 +136,10 @@ export const AgentSignals = () => {
       signals: [
         { id: 'call_incoming', name: 'Incoming Call' },
         { id: 'call_missed', name: 'Missed Call' },
-        { id: 'call_completed', name: 'Call Completed' }
+        { id: 'call_completed', name: 'Call Completed' },
+        { id: 'call_scheduled', name: 'Call Scheduled' },
+        { id: 'call_rescheduled', name: 'Call Rescheduled' },
+        { id: 'call_cancelled', name: 'Call Cancelled' }
       ],
       nextActions: [
         { id: 'email', name: 'Email' },
@@ -122,35 +150,87 @@ export const AgentSignals = () => {
     }
   ];
 
-  const updateSignalFlow = (flowId: string, updates: Partial<SignalFlow>) => {
+  const updateParentStep = (flowId: string, updates: Partial<SignalStep>) => {
     setSignalFlows(prev => prev.map(flow => 
-      flow.id === flowId ? { ...flow, ...updates } : flow
+      flow.id === flowId ? { ...flow, parentStep: { ...flow.parentStep, ...updates } } : flow
     ));
   };
 
-  const handleModuleSelect = (flowId: string, moduleValue: string) => {
-    updateSignalFlow(flowId, { selectedModule: moduleValue, selectedSignals: [], nextAction: undefined });
+  const updateChildStep = (flowId: string, stepId: string, updates: Partial<SignalStep>) => {
+    setSignalFlows(prev => prev.map(flow => 
+      flow.id === flowId 
+        ? { 
+            ...flow, 
+            childSteps: flow.childSteps.map(step => 
+              step.id === stepId ? { ...step, ...updates } : step
+            )
+          } 
+        : flow
+    ));
   };
 
-  const handleSignalToggle = (flowId: string, signalId: string) => {
+  const handleParentModuleSelect = (flowId: string, moduleValue: string) => {
+    updateParentStep(flowId, { selectedModule: moduleValue, selectedSignals: [], nextAction: undefined });
+  };
+
+  const handleParentSignalToggle = (flowId: string, signalId: string) => {
     const flow = signalFlows.find(f => f.id === flowId);
     if (!flow) return;
     
-    const newSignals = flow.selectedSignals.includes(signalId)
-      ? flow.selectedSignals.filter(id => id !== signalId)
-      : [...flow.selectedSignals, signalId];
+    const newSignals = flow.parentStep.selectedSignals.includes(signalId)
+      ? flow.parentStep.selectedSignals.filter(id => id !== signalId)
+      : [...flow.parentStep.selectedSignals, signalId];
     
-    updateSignalFlow(flowId, { selectedSignals: newSignals });
+    updateParentStep(flowId, { selectedSignals: newSignals });
   };
 
-  const handleNextActionSelect = (flowId: string, actionId: string) => {
-    updateSignalFlow(flowId, { nextAction: actionId });
+  const handleChildModuleSelect = (flowId: string, stepId: string, moduleValue: string) => {
+    updateChildStep(flowId, stepId, { selectedModule: moduleValue, selectedSignals: [], nextAction: undefined });
+  };
+
+  const handleChildSignalToggle = (flowId: string, stepId: string, signalId: string) => {
+    const flow = signalFlows.find(f => f.id === flowId);
+    const step = flow?.childSteps.find(s => s.id === stepId);
+    if (!flow || !step) return;
+    
+    const newSignals = step.selectedSignals.includes(signalId)
+      ? step.selectedSignals.filter(id => id !== signalId)
+      : [...step.selectedSignals, signalId];
+    
+    updateChildStep(flowId, stepId, { selectedSignals: newSignals });
+  };
+
+  const addChildStep = (flowId: string) => {
+    const newStepId = `child-${Date.now()}`;
+    setSignalFlows(prev => prev.map(flow => 
+      flow.id === flowId 
+        ? { 
+            ...flow, 
+            childSteps: [...flow.childSteps, { 
+              id: newStepId, 
+              selectedSignals: [], 
+              selectedNextSignals: [] 
+            }]
+          } 
+        : flow
+    ));
   };
 
   const addAnotherModuleFlow = () => {
+    const currentFlow = signalFlows[0];
+    if (!currentFlow) return;
+
     const newFlow: SignalFlow = {
       id: Date.now().toString(),
-      selectedSignals: []
+      parentStep: { 
+        id: `parent-${Date.now()}`, 
+        selectedSignals: [...currentFlow.parentStep.selectedSignals], 
+        selectedNextSignals: [...currentFlow.parentStep.selectedNextSignals] 
+      },
+      childSteps: [...currentFlow.childSteps.map(step => ({
+        ...step,
+        id: `child-${Date.now()}-${step.id}`
+      }))]
     };
     setSignalFlows(prev => [...prev, newFlow]);
   };
@@ -158,7 +238,8 @@ export const AgentSignals = () => {
   const addNewFlow = () => {
     const newFlow: SignalFlow = {
       id: Date.now().toString(),
-      selectedSignals: []
+      parentStep: { id: `parent-${Date.now()}`, selectedSignals: [], selectedNextSignals: [] },
+      childSteps: []
     };
     setSignalFlows(prev => [...prev, newFlow]);
   };
@@ -178,13 +259,13 @@ export const AgentSignals = () => {
       <div className="flex items-center gap-2 mb-4">
         <Zap className="h-5 w-5 text-primary" />
         <span className="text-sm text-muted-foreground">
-          Create signal flows by selecting modules and their triggers
+          Create signal flows by selecting parent module and child signals
         </span>
       </div>
 
       {/* Signal Flows */}
       {signalFlows.map((flow, index) => {
-        const selectedModule = getSelectedModule(flow.selectedModule);
+        const selectedParentModule = getSelectedModule(flow.parentStep.selectedModule);
         
         return (
           <Card key={flow.id} className="border-2 border-border/50 hover:border-primary/30 transition-all">
@@ -205,111 +286,155 @@ export const AgentSignals = () => {
                 )}
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap items-center gap-4">
-                {/* Step 1: Select Module */}
-                <div className="flex-shrink-0">
-                  <label className="text-sm font-medium mb-2 block">Select Module</label>
-                  <Select value={flow.selectedModule || ""} onValueChange={(value) => handleModuleSelect(flow.id, value)}>
-                    <SelectTrigger className="w-40">
-                      <SelectValue placeholder="Choose module" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {modules.map((module) => {
-                        const Icon = module.icon;
-                        return (
-                          <SelectItem key={module.value} value={module.value}>
-                            <div className="flex items-center gap-2">
-                              <div className={`p-1 rounded ${module.color}`}>
-                                <Icon className="h-3 w-3" />
+            <CardContent className="space-y-6">
+              {/* Parent Module Step */}
+              <Card className="bg-blue-50/50 border-blue-200">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm text-blue-700">Parent Module</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Module Selection */}
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Select Module</label>
+                    <Select 
+                      value={flow.parentStep.selectedModule || ""} 
+                      onValueChange={(value) => handleParentModuleSelect(flow.id, value)}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Choose parent module" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {modules.map((module) => {
+                          const Icon = module.icon;
+                          return (
+                            <SelectItem key={module.value} value={module.value}>
+                              <div className="flex items-center gap-2">
+                                <div className={`p-1 rounded ${module.color}`}>
+                                  <Icon className="h-3 w-3" />
+                                </div>
+                                {module.name}
                               </div>
-                              {module.name}
-                            </div>
-                          </SelectItem>
-                        );
-                      })}
-                    </SelectContent>
-                  </Select>
-                </div>
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-                {/* Arrow */}
-                {flow.selectedModule && <ArrowRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />}
-
-                {/* Step 2: Select Signals */}
-                {flow.selectedModule && selectedModule && (
-                  <div className="flex-shrink-0">
-                    <label className="text-sm font-medium mb-2 block">Select Triggers</label>
-                    <Card className="w-64 max-h-48 overflow-y-auto">
-                      <CardContent className="p-3 space-y-2">
-                        {selectedModule.signals.map((signal) => (
+                  {/* Parent Module Signals */}
+                  {flow.parentStep.selectedModule && selectedParentModule && (
+                    <div>
+                      <label className="text-sm font-medium mb-2 block">Select Parent Signals</label>
+                      <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto p-2 border rounded">
+                        {selectedParentModule.signals.map((signal) => (
                           <div key={signal.id} className="flex items-center space-x-2">
                             <Checkbox
-                              id={`${flow.id}-${signal.id}`}
-                              checked={flow.selectedSignals.includes(signal.id)}
-                              onCheckedChange={() => handleSignalToggle(flow.id, signal.id)}
+                              id={`parent-${flow.id}-${signal.id}`}
+                              checked={flow.parentStep.selectedSignals.includes(signal.id)}
+                              onCheckedChange={() => handleParentSignalToggle(flow.id, signal.id)}
                             />
                             <label
-                              htmlFor={`${flow.id}-${signal.id}`}
-                              className="text-sm leading-none cursor-pointer"
+                              htmlFor={`parent-${flow.id}-${signal.id}`}
+                              className="text-xs leading-none cursor-pointer"
                             >
                               {signal.name}
                             </label>
                           </div>
                         ))}
-                      </CardContent>
-                    </Card>
-                  </div>
-                )}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
 
-                {/* Arrow */}
-                {flow.selectedSignals.length > 0 && <ArrowRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />}
+              {/* Child Steps */}
+              {flow.childSteps.map((step) => {
+                const selectedChildModule = getSelectedModule(step.selectedModule);
+                return (
+                  <Card key={step.id} className="bg-green-50/50 border-green-200">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm text-green-700">Child Signal</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {/* Child Module Selection */}
+                      <div>
+                        <label className="text-sm font-medium mb-2 block">Select Next Signal Module</label>
+                        <Select 
+                          value={step.selectedModule || ""} 
+                          onValueChange={(value) => handleChildModuleSelect(flow.id, step.id, value)}
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Choose next signal module" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {modules.map((module) => {
+                              const Icon = module.icon;
+                              return (
+                                <SelectItem key={module.value} value={module.value}>
+                                  <div className="flex items-center gap-2">
+                                    <div className={`p-1 rounded ${module.color}`}>
+                                      <Icon className="h-3 w-3" />
+                                    </div>
+                                    {module.name}
+                                  </div>
+                                </SelectItem>
+                              );
+                            })}
+                          </SelectContent>
+                        </Select>
+                      </div>
 
-                {/* Step 3: Select Next Action */}
-                {flow.selectedSignals.length > 0 && selectedModule && (
-                  <div className="flex-shrink-0">
-                    <label className="text-sm font-medium mb-2 block">Select Next Action</label>
-                    <Select value={flow.nextAction || ""} onValueChange={(value) => handleNextActionSelect(flow.id, value)}>
-                      <SelectTrigger className="w-48">
-                        <SelectValue placeholder="Choose action" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {selectedModule.nextActions.map((action) => (
-                          <SelectItem key={action.id} value={action.id}>
-                            {action.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
+                      {/* Child Module Signals */}
+                      {step.selectedModule && selectedChildModule && (
+                        <div>
+                          <label className="text-sm font-medium mb-2 block">Select Child Signals</label>
+                          <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto p-2 border rounded">
+                            {selectedChildModule.signals.map((signal) => (
+                              <div key={signal.id} className="flex items-center space-x-2">
+                                <Checkbox
+                                  id={`child-${step.id}-${signal.id}`}
+                                  checked={step.selectedSignals.includes(signal.id)}
+                                  onCheckedChange={() => handleChildSignalToggle(flow.id, step.id, signal.id)}
+                                />
+                                <label
+                                  htmlFor={`child-${step.id}-${signal.id}`}
+                                  className="text-xs leading-none cursor-pointer"
+                                >
+                                  {signal.name}
+                                </label>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
 
-                {/* Arrow */}
-                {flow.nextAction && <ArrowRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />}
-
-                {/* Step 4: Add Button */}
-                {flow.nextAction && (
-                  <div className="flex-shrink-0">
-                    <Button variant="outline" size="icon" className="w-10 h-10">
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </div>
-                )}
-              </div>
+              {/* Add Child Step Button */}
+              {flow.parentStep.selectedSignals.length > 0 && (
+                <Button 
+                  variant="outline" 
+                  onClick={() => addChildStep(flow.id)}
+                  className="w-full flex items-center gap-2"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add Next Signal
+                </Button>
+              )}
 
               {/* Flow Summary */}
-              {flow.selectedModule && flow.selectedSignals.length > 0 && (
+              {flow.parentStep.selectedModule && flow.parentStep.selectedSignals.length > 0 && (
                 <div className="mt-4 p-3 bg-muted/50 rounded-lg">
                   <p className="text-sm text-muted-foreground">
-                    <strong>Flow Summary:</strong> When {selectedModule?.name} triggers{' '}
+                    <strong>Flow Summary:</strong> Parent {selectedParentModule?.name} triggers{' '}
                     <Badge variant="secondary" className="mx-1">
-                      {flow.selectedSignals.length} signal{flow.selectedSignals.length > 1 ? 's' : ''}
+                      {flow.parentStep.selectedSignals.length} signal{flow.parentStep.selectedSignals.length > 1 ? 's' : ''}
                     </Badge>
-                    {flow.nextAction && (
+                    {flow.childSteps.length > 0 && (
                       <>
-                        {' '}→ Execute{' '}
-                        <Badge variant="default" className="mx-1">
-                          {selectedModule?.nextActions.find(a => a.id === flow.nextAction)?.name}
-                        </Badge>
+                        {' '}→ {flow.childSteps.length} child signal{flow.childSteps.length > 1 ? 's' : ''}
                       </>
                     )}
                   </p>
